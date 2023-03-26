@@ -4266,6 +4266,89 @@ class ParallelHopsStrategy extends Strategy {
 
 
 
+// Strategy for Dodging Columns as a means of providing additional conditioning.
+class ColumnDodgeStrategy extends Strategy {
+
+
+
+
+    // Initializes an instance of a segment of the strategy.
+	initSegment(tmpObj, strtTimeI, randx, startXA, columnIndex) {
+
+		const split2 = tmpObj.referenceTimeSplit;
+
+		var strtTimeA = strtTimeI;
+
+
+
+
+
+		{
+			const tobj = tmpObj.dodgeColumnsA[parseInt(0 + columnIndex)];
+			tobj.strtPos = new THREE.Vector3(startXA, tmpObj.dodgeColumnHeight, tmpObj.backDistBucket);
+			tobj.endPos = new THREE.Vector3(startXA, tmpObj.dodgeColumnHeight, 0);
+			tobj.strtTime = strtTimeA;
+			tobj.endTime = parseInt(tobj.strtTime + 1.5 * tmpObj.flightTime);
+			this.enableStart(tmpObj, tobj);
+			this.randRotateFar(tmpObj, randx, tobj.strtPos);
+			this.randRotateClose(tmpObj, randx, tobj.endPos);
+			this.postAdjustEndpos(tmpObj, tobj.endPos);
+		}
+
+
+
+
+		strtTimeA = strtTimeI + 2 * split2;
+
+
+
+	} // initSegment
+
+
+
+
+
+
+
+    // Initializes an instance of the strategy.
+	init(tmpObj, strtTimeI) {
+
+		const split2 = tmpObj.referenceTimeSplit;
+		const randx = Math.random();
+
+		var strtTimeA = strtTimeI;
+
+
+
+		this.initSegment(tmpObj, strtTimeA, randx, 0.16, 0);
+
+
+		tmpObj.endTime = strtTimeA + split2 + 1.5 * tmpObj.flightTime;
+		
+
+		tmpObj.dumbbellStrategy.initPotentialDisruptiveDumbbell(tmpObj, strtTimeI, tmpObj.endTime);
+
+
+	} // init
+
+
+
+
+} // ColumnDodgeStrategy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4521,6 +4604,9 @@ function init() {
 	scene.background = new THREE.Color(0x77b5fe);
 	const fog = new THREE.Fog("grey", 1, 90);
 
+      
+	const bucketL2Height = 3;
+      const bucketL2YPos = bucketL2Height - 2;
 
 
 	// audio
@@ -4549,6 +4635,7 @@ function init() {
 	tmpObj.masterFontSizeMultiplier = 0.0125;
 	tmpObj.fontSizeMultiplierScoring = 0.75;
 	tmpObj.jumpHurdleHeight = 0.05;
+      tmpObj.dodgeColumnHeight = bucketL2YPos;
 	tmpObj.updateDumbbellHits = true;
 	tmpObj.updateLeftPunchHits = true;
 	tmpObj.updateRightPunchHits = true;
@@ -4561,13 +4648,13 @@ function init() {
 	tmpObj.playerHeightInchesText = document.getElementById( "playerHeightInchesText" );
 	tmpObj.difficultyText = document.getElementById( "difficultyText" );
 
-    tmpObj.difficultyText.value = 50;
+    tmpObj.difficultyText.value = 47.3;
 
 	{
 	    var difficulty = parseFloat( tmpObj.difficultyText.value );
 	    if( isNaN( difficulty ) )
 	    {
-	        difficulty = 50;
+	        difficulty = 47.3;
 	    }
 	    if( difficulty < 2 )
 	    {
@@ -4598,7 +4685,6 @@ function init() {
 	);
 
 	// create the cube
-	const bucketL2Height = 3;
 	const bucketL2Width = 1.0;
 	const bucketL2Geometry = new THREE.BoxGeometry(
 		bucketL2Width,
@@ -4653,6 +4739,10 @@ function init() {
 		jumpHurdleSizeXZ
 	);
 
+	// create the dodge column geometry
+	const dodgeColumnGeometry = bucketL2Geometry;
+
+
 	// Create the upright plane
 	const planeWidth = 256;
 	const planeHeight = 128;
@@ -4696,6 +4786,9 @@ function init() {
 		color: 0xffc000
 	});
 
+      const dodgeColumnMaterialA = bucketL2Material;
+
+
 	tmpObj.endTime = parseInt(-5000);
 	tmpObj.nextSequence = null;
 
@@ -4738,15 +4831,15 @@ function init() {
 	scene.add(cube);
 
 	bucketL1 = new THREE.Mesh(bucketL2Geometry, bucketL2Material);
-	bucketL1.position.set(-tmpObj.bucketXOffset, bucketL2Height - 2, tmpObj.backDistBucket);
+	bucketL1.position.set(-tmpObj.bucketXOffset, bucketL2YPos, tmpObj.backDistBucket);
 	scene.add(bucketL1);
 
 	bucketL2 = new THREE.Mesh(bucketL2Geometry, bucketL2Material);
-	bucketL2.position.set(0, bucketL2Height - 2, tmpObj.backDistBucket);
+	bucketL2.position.set(0, bucketL2YPos, tmpObj.backDistBucket);
 	scene.add(bucketL2);
 
 	bucketL3 = new THREE.Mesh(bucketL2Geometry, bucketL2Material);
-	bucketL3.position.set(tmpObj.bucketXOffset, bucketL2Height - 2, tmpObj.backDistBucket);
+	bucketL3.position.set(tmpObj.bucketXOffset, bucketL2YPos, tmpObj.backDistBucket);
 	scene.add(bucketL3);
 
 	marker1 = new THREE.Mesh(marker1Geometry, markerMaterial);
@@ -4760,6 +4853,7 @@ function init() {
 	tmpObj.maxTargets = parseInt(18 /* 15 */ /* 10 */);
 	tmpObj.maxDumbbels = parseInt(6);
 	tmpObj.maxJumpHurdles = parseInt(6);
+	tmpObj.maxDodgeColumns = parseInt(2);
 	tmpObj.utimeStrt = parseInt(-5500);
 	tmpObj.utimeEnd = parseInt(-5000);
 	tmpObj.targetFarDist = -10;
@@ -4867,6 +4961,24 @@ function init() {
 		tobj.mesh = new THREE.Mesh(jumpHurdleGeometry, jumpHurdleMaterialA);
 		tobj.mesh.position.set(0, 0, tmpObj.targetFarDist);
 		tobj.rotationRate = 0.01;
+		tobj.strtTime = tmpObj.utimeStrt;
+		tobj.endTime = tmpObj.utimeEnd;
+		tobj.timeEnabled = false;
+		tobj.audioDefined = false;
+		tobj.audioPlay = false;
+		tobj.collided = false;
+		scene.add(tobj.mesh);
+	}
+
+	tmpObj.dodgeColumnsA = [];
+	for (let cnt = parseInt(0); cnt < tmpObj.maxDodgeColumns; cnt++) {
+		tmpObj.dodgeColumnsA[cnt] = {};
+		const tobj = tmpObj.dodgeColumnsA[cnt];
+		tobj.strtPos = new THREE.Vector3(0, 1.5, tmpObj.targetFarDist);
+		tobj.endPos = new THREE.Vector3(0, 1.5, tmpObj.targetFarDist);
+		tobj.mesh = new THREE.Mesh(dodgeColumnGeometry, dodgeColumnMaterialA);
+		tobj.mesh.position.set(0, 0, tmpObj.targetFarDist);
+		tobj.rotationRate = 0.00;
 		tobj.strtTime = tmpObj.utimeStrt;
 		tobj.endTime = tmpObj.utimeEnd;
 		tobj.timeEnabled = false;
@@ -5027,6 +5139,14 @@ function init() {
 
 		for (let cnt = parseInt(0); cnt < tmpObj.maxJumpHurdles; cnt++) {
 			const tobj = tmpObj.jumpHurdlesA[cnt];
+			const audio = new THREE.PositionalAudio(tmpObj.audioListener);
+			audio.setBuffer(tmpObj.audioBuffer);
+			tobj.mesh.add(audio);
+			tobj.audioDefined = true;
+		}
+
+		for (let cnt = parseInt(0); cnt < tmpObj.maxDodgeColumns; cnt++) {
+			const tobj = tmpObj.dodgeColumnsA[cnt];
 			const audio = new THREE.PositionalAudio(tmpObj.audioListener);
 			audio.setBuffer(tmpObj.audioBuffer);
 			tobj.mesh.add(audio);
@@ -5266,6 +5386,8 @@ function init() {
 
 	tmpObj.strategiesDefense[9] = new ProtectHammerStrikeStrategy();
 
+	tmpObj.strategiesDefense[10] = new ColumnDodgeStrategy();
+
 
 
 
@@ -5445,12 +5567,12 @@ function draw(time) {
 
 	    {
 	        var difficulty = parseFloat( tmpObj.difficultyText.value );
-	        console.log( tmpObj.difficultyText );
-	        console.log( tmpObj.difficultyText.value );
-	        console.log( difficulty );
+	        // console.log( tmpObj.difficultyText );
+	        // console.log( tmpObj.difficultyText.value );
+	        // console.log( difficulty );
 	        if( isNaN( difficulty ) )
 	        {
-	            difficulty = 50;
+	            difficulty = 47.3;
 	        }
 	        if( difficulty < 2 )
 	        {
@@ -5518,7 +5640,7 @@ function draw(time) {
 
 				tmpObj.strategiesDefense[randn].init(tmpObj, tmpObj.endTime);
 			}
-			// ( new LeftSideBladeKickTrainAbdomenStrategy() ).init( tmpObj , tmpObj.endTime );
+			// ( new ColumnDodgeStrategy() ).init( tmpObj , tmpObj.endTime );
 		}
 
 
@@ -5684,6 +5806,29 @@ function draw(time) {
 		}
 	}
 
+	for (let cnt = parseInt(0); cnt < tmpObj.maxDodgeColumns; cnt++) {
+		const tobj = tmpObj.dodgeColumnsA[cnt];
+		const uB = (now - tobj.strtTime) / (tobj.endTime - tobj.strtTime);
+		if ((uB >= 0.0) && (uB <= 1.0)) {
+
+			tobj.mesh.position.set(
+				(1 - uB) * (tobj.strtPos.x) + uB * (tobj.endPos.x),
+				(1 - uB) * (tobj.strtPos.y) + uB * (tobj.endPos.y),
+				(1 - uB) * (tobj.strtPos.z) + uB * (tobj.endPos.z)
+			);
+			checkDumbbellCollision(tmpObj, tobj);
+			processTobjAudioPlay(tmpObj, tobj);
+		}
+		else if ((uB > 1.0) && (tobj.timeEnabled)) {
+			tobj.strtTime = tmpObj.utimeStrt;
+			tobj.endTime = tmpObj.utimeEnd;
+			tobj.timeEnabled = false;
+			tobj.strtPos.set(0, 1.5, tmpObj.targetFarDist);
+			tobj.endPos.set(0, 1.5, tmpObj.targetFarDist);
+			tobj.mesh.position.set(0, 0, tmpObj.targetFarDist);
+		}
+	}
+
 
 
 	light.position.x = 20 * Math.cos(time);
@@ -5736,6 +5881,7 @@ function draw(time) {
 		const centerOffsetX = - 0.5 * (tmpObj.textGeo.boundingBox.max.x + tmpObj.textGeo.boundingBox.min.x);
 
 		const bucketL2Height = 3;
+		const bucketL2YPos = bucketL2Height - 2;
 
 		const prevTextMesh = tmpObj.textMesh;
 
