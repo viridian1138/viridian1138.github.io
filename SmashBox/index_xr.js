@@ -4288,7 +4288,7 @@ class ColumnDodgeStrategy extends Strategy {
 			tobj.strtPos = new THREE.Vector3(startXA, tmpObj.dodgeColumnHeight, tmpObj.backDistBucket);
 			tobj.endPos = new THREE.Vector3(startXA, tmpObj.dodgeColumnHeight, 0);
 			tobj.strtTime = strtTimeA;
-			tobj.endTime = parseInt(tobj.strtTime + 1.5 * tmpObj.flightTime);
+			tobj.endTime = parseInt(tobj.strtTime + 1.4 * tmpObj.flightTime);
 			this.enableStart(tmpObj, tobj);
 			this.randRotateFar(tmpObj, randx, tobj.strtPos);
 			this.randRotateClose(tmpObj, randx, tobj.endPos);
@@ -4323,7 +4323,7 @@ class ColumnDodgeStrategy extends Strategy {
 		this.initSegment(tmpObj, strtTimeA, randx, 0.16, 0);
 
 
-		tmpObj.endTime = strtTimeA + split2 + 1.5 * tmpObj.flightTime;
+		tmpObj.endTime = strtTimeA + split2 + 1.4 * tmpObj.flightTime;
 		
 
 		tmpObj.dumbbellStrategy.initPotentialDisruptiveDumbbell(tmpObj, strtTimeI, tmpObj.endTime);
@@ -4740,7 +4740,12 @@ function init() {
 	);
 
 	// create the dodge column geometry
-	const dodgeColumnGeometry = bucketL2Geometry;
+	const dodgeColumnWidth = 0.64;
+	const dodgeColumnGeometry = new THREE.BoxGeometry(
+		dodgeColumnWidth,
+		bucketL2Height,
+		dodgeColumnWidth
+	);
 
 
 	// Create the upright plane
