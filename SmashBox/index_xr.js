@@ -4569,14 +4569,40 @@ function init() {
 		var vv = Math.random();
 	}
 
-	// create context
-	gl = new THREE.WebGLRenderer({ antialias: true });
+	// Create the WebGL context ourselves so that it is born XR-compatible.
+	// The Immersive Web samples (which work on current headsets) create their
+	// context with { xrCompatible: true }.  Calling makeXRCompatible() after a
+	// normal context has already uploaded all of the app's GPU resources can
+	// force a context loss/restore on newer runtimes, which prevents an
+	// immersive session from starting.
+	canvas = document.createElement('canvas');
+	glContext = canvas.getContext('webgl2', { antialias: true, xrCompatible: true })
+		|| canvas.getContext('webgl', { antialias: true, xrCompatible: true });
+
+	if (!glContext) {
+		throw new Error('WebGL is not available in this browser.');
+	}
+
+	// create renderer from the pre-created XR-compatible context
+	gl = new THREE.WebGLRenderer({
+		canvas: canvas,
+		context: glContext,
+		antialias: true
+	});
 	gl.setPixelRatio(window.devicePixelRatio);
 	gl.setSize(window.innerWidth, window.innerHeight);
 	gl.outputEncoding = THREE.sRGBEncoding;
 	gl.xr.enabled = true;
+
+	// Select the floor-relative reference space before a session starts.
+	// (three.js r118 defaults to this, but being explicit documents intent and
+	// protects us if the vendored default ever changes.)
+	gl.xr.setReferenceSpaceType('local-floor');
+
 	document.body.appendChild(gl.domElement);
-	document.body.appendChild(VRButton.createButton(gl));
+	document.body.appendChild(VRButton.createButton(gl, {
+		referenceSpaceType: 'local-floor'
+	}));
 
 
 	// tmpObj
@@ -4648,13 +4674,13 @@ function init() {
 	tmpObj.playerHeightInchesText = document.getElementById( "playerHeightInchesText" );
 	tmpObj.difficultyText = document.getElementById( "difficultyText" );
 
-    tmpObj.difficultyText.value = 47.3;
+    tmpObj.difficultyText.value = 47.0;
 
 	{
 	    var difficulty = parseFloat( tmpObj.difficultyText.value );
 	    if( isNaN( difficulty ) )
 	    {
-	        difficulty = 47.3;
+	        difficulty = 47.0;
 	    }
 	    if( difficulty < 2 )
 	    {
@@ -5577,7 +5603,7 @@ function draw(time) {
 	        // console.log( difficulty );
 	        if( isNaN( difficulty ) )
 	        {
-	            difficulty = 47.3;
+	            difficulty = 47.0;
 	        }
 	        if( difficulty < 2 )
 	        {

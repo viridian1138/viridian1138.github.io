@@ -23772,30 +23772,82 @@ function WebXRManager( renderer, gl ) {
 
 			const attributes = gl.getContextAttributes();
 
-			if ( attributes.xrCompatible !== true ) {
+			function requestReferenceSpace() {
 
-				gl.makeXRCompatible();
+				session.requestReferenceSpace( referenceSpaceType ).then( onRequestReferenceSpace ).catch( function () {
+
+					// A runtime may not grant the requested floor space.  "local" is
+					// always available for immersive sessions, so fall back to it
+					// instead of leaving the renderer outside of presentation.
+					if ( referenceSpaceType !== 'local' ) {
+
+						referenceSpaceType = 'local';
+
+						session.requestReferenceSpace( referenceSpaceType ).then( onRequestReferenceSpace ).catch( function ( error ) {
+
+							console.error( 'THREE.WebXRManager: Unable to request a reference space.', error );
+
+						} );
+
+					} else {
+
+						console.error( 'THREE.WebXRManager: Unable to request a reference space.' );
+
+					}
+
+				} );
 
 			}
 
-			const layerInit = {
-				antialias: attributes.antialias,
-				alpha: attributes.alpha,
-				depth: attributes.depth,
-				stencil: attributes.stencil,
-				framebufferScaleFactor: framebufferScaleFactor
-			};
+			function setupSession() {
 
-			// eslint-disable-next-line no-undef
-			const baseLayer = new XRWebGLLayer( session, gl, layerInit );
+				const layerInit = {
+					antialias: attributes.antialias,
+					alpha: attributes.alpha,
+					depth: attributes.depth,
+					stencil: attributes.stencil,
+					framebufferScaleFactor: framebufferScaleFactor
+				};
 
-			session.updateRenderState( { baseLayer: baseLayer } );
+				// eslint-disable-next-line no-undef
+				const baseLayer = new XRWebGLLayer( session, gl, layerInit );
 
-			session.requestReferenceSpace( referenceSpaceType ).then( onRequestReferenceSpace );
+				session.updateRenderState( { baseLayer: baseLayer } );
 
-			//
+				requestReferenceSpace();
 
-			session.addEventListener( 'inputsourceschange', updateInputSources );
+				//
+
+				session.addEventListener( 'inputsourceschange', updateInputSources );
+
+			}
+
+			// makeXRCompatible() returns a promise.  Creating the XRWebGLLayer
+			// before that promise settles is a race that fails on some browsers
+			// (three.js issue #20715), so wait for it when it is needed.
+			if ( attributes.xrCompatible !== true && typeof gl.makeXRCompatible === 'function' ) {
+
+				const compatible = gl.makeXRCompatible();
+
+				if ( compatible && typeof compatible.then === 'function' ) {
+
+					compatible.then( setupSession ).catch( function ( error ) {
+
+						console.error( 'THREE.WebXRManager: makeXRCompatible() failed.', error );
+
+					} );
+
+				} else {
+
+					setupSession();
+
+				}
+
+			} else {
+
+				setupSession();
+
+			}
 
 		}
 
@@ -23933,10 +23985,21 @@ function WebXRManager( renderer, gl ) {
 
 			// Note that the new renderState won't apply until the next frame. See #18320
 
-			session.updateRenderState( {
+			const renderState = {
 				depthNear: cameraVR.near,
 				depthFar: cameraVR.far
-			} );
+			};
+
+			// Some modern Chromium builds lose the base layer when
+			// updateRenderState() is called without it.  This build only uses
+			// XRWebGLLayer (no WebXR Layers), so re-asserting it is safe.
+			if ( session.renderState.baseLayer ) {
+
+				renderState.baseLayer = session.renderState.baseLayer;
+
+			}
+
+			session.updateRenderState( renderState );
 
 			_currentDepthNear = cameraVR.near;
 			_currentDepthFar = cameraVR.far;
