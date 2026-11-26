@@ -486,6 +486,188 @@ class LeftHookAbdomenStrategy extends Strategy {
 
 
 
+// Strategy for One-Leg Hop Then Punch as a means of providing additional training for balance and body control.
+// The notion is to maintain balance by keeping the foot at the elevation of the kick target while punching the punch targets.
+class HopThenPunchStrategy extends Strategy {
+
+
+    // Initializes an instance of a segment of the strategy.
+	initSegment(tmpObj, strtTimeI, randx, startXA, kckIndex, hurdleIndex) {
+
+		const split2 = tmpObj.referenceTimeSplit;
+
+		var strtTimeA = strtTimeI;
+		
+		const markerSplit = 3.0 * split2;
+
+
+
+
+
+		{
+			const tobj = tmpObj.jumpHurdlesA[0 + hurdleIndex];
+			tobj.strtPos = new THREE.Vector3(startXA, tmpObj.jumpHurdleHeight, tmpObj.backDistBucket);
+			tobj.endPos = new THREE.Vector3(startXA, tmpObj.jumpHurdleHeight, 0);
+			tobj.strtTime = strtTimeA;
+			tobj.endTime = parseInt(tobj.strtTime + tmpObj.flightTime);
+			this.enableStart(tmpObj, tobj);
+			this.randRotateFar(tmpObj, randx, tobj.strtPos);
+			this.randRotateClose(tmpObj, randx, tobj.endPos);
+			this.postAdjustEndpos(tmpObj, tobj.endPos);
+		}
+
+
+
+
+        strtTimeA = strtTimeI + 2 * markerSplit;
+
+
+
+        var heightA = tmpObj.jumpHurdleHeight;
+        var heightB = tmpObj.jumpHurdleHeight;
+        
+        
+        const multP = 0.45 + 0.1 * ( Math.random() );
+        
+        
+        if( Math.random() > 0.5 ) {
+            heightA = tmpObj.offenseHeight * (multP * tmpObj.abdomenHeight / tmpObj.idealHumanHeadHeights );
+        }
+        else {
+            heightB = tmpObj.offenseHeight * (multP * tmpObj.abdomenHeight / tmpObj.idealHumanHeadHeights );
+        } // if 
+
+
+
+
+		{
+			const tobj = tmpObj.targetsKickA[0 + kckIndex];
+			tobj.strtPos = new THREE.Vector3(startXA + 0.16, heightA, tmpObj.backDistBucket);
+			tobj.endPos = new THREE.Vector3(startXA + 0.16, heightA, 0);
+			tobj.strtTime = parseInt(strtTimeA + split2);
+			tobj.endTime = parseInt(tobj.strtTime + tmpObj.flightTime);
+			this.enableStart(tmpObj, tobj);
+			this.randRotateFar(tmpObj, randx, tobj.strtPos);
+			this.randRotateClose(tmpObj, randx, tobj.endPos);
+			this.postAdjustEndpos(tmpObj, tobj.endPos);
+		}
+
+
+
+
+
+
+
+
+
+		{
+			const tobj = tmpObj.targetsKickB[0 + kckIndex];
+			tobj.strtPos = new THREE.Vector3(startXA - 0.16, heightB, tmpObj.backDistBucket);
+			tobj.endPos = new THREE.Vector3(startXA - 0.16, heightB, 0);
+			tobj.strtTime = parseInt(strtTimeA + split2);
+			tobj.endTime = parseInt(tobj.strtTime + tmpObj.flightTime);
+			this.enableStart(tmpObj, tobj);
+			this.randRotateFar(tmpObj, randx, tobj.strtPos);
+			this.randRotateClose(tmpObj, randx, tobj.endPos);
+			this.postAdjustEndpos(tmpObj, tobj.endPos);
+		}
+
+
+
+
+
+
+
+
+
+		{
+			const tobj = tmpObj.targetsKickA[1 + kckIndex];
+			tobj.strtPos = new THREE.Vector3(startXA + 0.16, heightA, tmpObj.backDistBucket);
+			tobj.endPos = new THREE.Vector3(startXA + 0.16, heightA, 0);
+			tobj.strtTime = parseInt(strtTimeA + markerSplit + markerSplit);
+			tobj.endTime = parseInt(tobj.strtTime + tmpObj.flightTime);
+			this.enableStart(tmpObj, tobj);
+			this.randRotateFar(tmpObj, randx, tobj.strtPos);
+			this.randRotateClose(tmpObj, randx, tobj.endPos);
+			this.postAdjustEndpos(tmpObj, tobj.endPos);
+		}
+
+
+
+
+
+
+
+
+
+		{
+			const tobj = tmpObj.targetsKickB[1 + kckIndex];
+			tobj.strtPos = new THREE.Vector3(startXA - 0.16, heightB, tmpObj.backDistBucket);
+			tobj.endPos = new THREE.Vector3(startXA - 0.16, heightB, 0);
+			tobj.strtTime = parseInt(strtTimeA + markerSplit + markerSplit);
+			tobj.endTime = parseInt(tobj.strtTime + tmpObj.flightTime);
+			this.enableStart(tmpObj, tobj);
+			this.randRotateFar(tmpObj, randx, tobj.strtPos);
+			this.randRotateClose(tmpObj, randx, tobj.endPos);
+			this.postAdjustEndpos(tmpObj, tobj.endPos);
+		}
+
+	} // initSegment
+
+
+
+    // Initializes an instance of the strategy.
+	init(tmpObj, strtTimeI) {
+
+		const split2 = tmpObj.referenceTimeSplit;
+		const split3 = 0.75 * split2;
+		const randx = Math.random();
+
+		var strtTimeA = strtTimeI;
+		
+		const markerSplit = 3.0 * split2;
+
+		this.initSegment(tmpObj, strtTimeA, randx, 0.0, 0, 0);
+
+		const punchStartTime = strtTimeA + 5 * markerSplit;
+		
+		
+		if( Math.random() > 0.5 )
+	    {
+	        if( Math.random() > 0.5 )
+	        {
+	            tmpObj.rightStraightAbdomenStrategy.initSegment(tmpObj, punchStartTime, randx, 0);
+                tmpObj.endTime = punchStartTime + split3 + split3 + tmpObj.flightTimeStraightPunch + this.xDeltaTime( tmpObj.flightTimeStraightPunch );
+	        }
+	        else
+	        {
+	            tmpObj.rightUppercutStrategy.initSegment(tmpObj, punchStartTime, randx, 0);
+                tmpObj.endTime = punchStartTime + split3 + split3 + tmpObj.flightTime + this.xDeltaTime( tmpObj.flightTime );
+	        }
+	    }
+	    else
+	    {
+	        if( Math.random() > 0.5 )
+	        {
+	            tmpObj.leftStraightAbdomenStrategy.initSegment(tmpObj, punchStartTime, randx, 0);
+                tmpObj.endTime = punchStartTime + split3 + split3 + tmpObj.flightTimeStraightPunch + this.xDeltaTime( tmpObj.flightTimeStraightPunch );
+	        }
+	        else
+	        {
+	            tmpObj.leftUppercutStrategy.initSegment(tmpObj, punchStartTime, randx, 0);
+                tmpObj.endTime = punchStartTime + split3 + split3 + tmpObj.flightTime + this.xDeltaTime( tmpObj.flightTime );
+	        }
+	    }
+
+	} // init
+
+} // HopThenPunchStrategy
+
+
+
+
+
+
 // Strategy for a right uppercut.
 class RightUppercutStrategy extends Strategy {
 
@@ -5248,6 +5430,8 @@ function init() {
 	tmpObj.rightStraightAbdomenStrategy = new RightStraightAbdomenStrategy();
 	
 	tmpObj.leftStraightAbdomenStrategy = new LeftStraightAbdomenStrategy();
+	
+	tmpObj.hopThenPunchStrategy = new HopThenPunchStrategy();
 
 
 
@@ -5355,6 +5539,8 @@ function init() {
 
 	tmpObj.strategiesOffenseLegMid[4] = new ParallelHopsStrategy();
 
+	tmpObj.strategiesOffenseLegMid[5] = tmpObj.hopThenPunchStrategy;
+
 
 
 
@@ -5418,6 +5604,8 @@ function init() {
 	tmpObj.strategiesDefense[9] = new ProtectHammerStrikeStrategy();
 
 	tmpObj.strategiesDefense[10] = new ColumnDodgeStrategy();
+
+	tmpObj.strategiesDefense[11] = tmpObj.hopThenPunchStrategy;
 
 
 
